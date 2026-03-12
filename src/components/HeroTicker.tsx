@@ -103,15 +103,23 @@ export default function HeroTicker() {
         let tickerSymbol = balance?.symbol || "—";
         let isSimulated = false;
 
-        // High-Fidelity Simulation when disconnected or balance is zero
-        if (!account || rawValue === 0) {
+        // Three states:
+        // 1. No wallet connected → skip animation, card shows "Connect Wallet"
+        // 2. Connected but zero balance → simulate a demo portfolio
+        // 3. Connected with funds → show real balance
+        if (!account) {
+            // State 1: Not connected — no animation needed
+            balanceRef.current.innerText = "Connect Wallet";
+            prevBalanceRef.current = null;
+            return;
+        }
+
+        if (rawValue === 0) {
+            // State 2: Connected but empty — demo mode
             const btcPrice = prices["BTC"]?.usd || 90500.20;
             const ethPrice = prices["ETH"]?.usd || 3100.45;
-            
-            // Add a micro-fluctuation based on the current millisecond to ensure 
-            // the simulated total organically shifts and triggers the scramble effect
             const noise = (Date.now() % 1000) / 10000;
-            rawValue = (btcPrice * 1.25) + (ethPrice * 3.5) + 140.50 + noise; // Organically ticks with WS and time
+            rawValue = (btcPrice * 1.25) + (ethPrice * 3.5) + 140.50 + noise;
             tickerSymbol = "USD";
             isSimulated = true;
         }
@@ -147,7 +155,11 @@ export default function HeroTicker() {
         let tickerSymbol = balance?.symbol || "—";
         let isSimulated = false;
 
-        if (!account || rawValue === 0) {
+        if (!account) {
+            return; // Not connected — nothing to replay
+        }
+
+        if (rawValue === 0) {
             const btcPrice = prices["BTC"]?.usd || 90500.20;
             const ethPrice = prices["ETH"]?.usd || 3100.45;
             const noise = (Date.now() % 1000) / 10000;
@@ -185,7 +197,7 @@ export default function HeroTicker() {
             <div className="relative z-10 flex flex-col items-start w-full pointer-events-none">
                 <div className="flex justify-between items-center w-full mb-4">
                     <span className="text-white/40 text-xs font-geist-sans tracking-[0.2em] uppercase font-semibold">
-                        {(!account || !balance || parseFloat(balance.displayValue) === 0) ? "Simulated Portfolio" : "Live Portfolio Vault"}
+                        {!account ? "Portfolio" : (balance && parseFloat(balance.displayValue) > 0) ? "Live Portfolio Vault" : "Demo Portfolio"}
                     </span>
                     <div className="flex items-center gap-3">
                         {isLoading && (
@@ -193,9 +205,11 @@ export default function HeroTicker() {
                                 Fetching...
                             </span>
                         )}
-                        <span className="text-white/20 text-[10px] uppercase font-geist-sans tracking-widest group-hover:text-white/60 transition-colors">
-                            Click to replay
-                        </span>
+                        {account && (
+                            <span className="text-white/20 text-[10px] uppercase font-geist-sans tracking-widest group-hover:text-white/60 transition-colors">
+                                Click to replay
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -208,8 +222,15 @@ export default function HeroTicker() {
 
                 {!account && (
                     <div className="mt-6 flex items-center space-x-2">
+                        <div className="w-2 h-2 rounded-full bg-white/20" />
+                        <span className="text-white/30 text-sm font-geist-sans">No wallet connected</span>
+                    </div>
+                )}
+
+                {account && balance && parseFloat(balance.displayValue) === 0 && (
+                    <div className="mt-6 flex items-center space-x-2">
                         <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)] animate-pulse" />
-                        <span className="text-white/40 text-sm font-geist-sans">Simulation Active</span>
+                        <span className="text-white/40 text-sm font-geist-sans">Demo Mode Active</span>
                     </div>
                 )}
 

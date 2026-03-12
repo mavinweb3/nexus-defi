@@ -149,8 +149,8 @@ function LiveTokenCard({
             id={token.id}
             name={token.name}
             symbol={balance?.symbol || token.symbol}
-            balance={displayBalance}
-            valueLabel={finalValueLabel}
+            balance={finalValueLabel}
+            valueLabel={isLoading ? "" : `${displayBalance} ${balance?.symbol || token.symbol}`}
             colSpan={token.colSpan}
             trend={priceChange !== undefined ? (priceChange >= 0 ? "up" : "down") : token.trend}
             sparkline={token.sparkline}
@@ -302,7 +302,7 @@ function VaultCard({
 
             <div className="relative z-10 flex flex-col items-start w-full mt-8">
                 <span ref={balanceRef} className={`font-bold text-white font-geist-sans tracking-[-0.05em] ${isLoading ? "animate-pulse text-white/40" : ""} ${isLarge ? "text-4xl md:text-5xl" : "text-3xl"}`}>{balance}</span>
-                <span ref={valueLabelRef} className="text-white/40 text-sm font-geist-sans mt-1 transition-colors duration-200">{valueLabel}</span>
+                {valueLabel && <span ref={valueLabelRef} className="text-white/40 text-sm font-geist-sans mt-1 transition-colors duration-200">{valueLabel}</span>}
             </div>
         </div>
     );
@@ -419,6 +419,10 @@ export default function AssetVault() {
     const heldTokens = allTokens.filter((t) => (balances[t.id] || 0) > 0);
     const showPlaceholders = !account || (!isAllLoaded && heldTokens.length === 0) || (isAllLoaded && heldTokens.length === 0);
 
+    // Distinguish: disconnected vs connected-but-empty
+    const isDisconnected = !account;
+    const isConnectedEmpty = account && showPlaceholders;
+
     return (
         <section ref={sectionRef} className="w-full z-10 relative">
             {account && allTokens.map(t => (
@@ -433,7 +437,7 @@ export default function AssetVault() {
 
             <div className="flex items-center justify-between mb-8 ml-2">
                 <h2 className="text-white/60 text-sm font-geist-sans tracking-[0.3em] uppercase">
-                    {showPlaceholders && account ? "Market Overview" : "Secured Liquidity"}
+                    {isDisconnected ? "Market Overview" : isConnectedEmpty ? "Demo Holdings" : "Secured Liquidity"}
                 </h2>
                 <div className="flex items-center gap-4">
                     {account && (
@@ -459,18 +463,21 @@ export default function AssetVault() {
                         const liveUsd = prices[card.symbol]?.usd;
                         const liveChange = prices[card.symbol]?.change24h;
 
-                        // Simulated holdings for the empty wallet state
-                        // Token balances are STATIC (wallet holdings don't change in simulation)
-                        // Only the USD dollar values tick with live market data
+                        // Disconnected: show only USD market price per 1 unit (no fake token holdings)
+                        // Connected+Empty: show demo holdings with simulated token balances
                         const simBalances: Record<string, number> = { "BTC": 1.2513, "ETH": 3.5182, "SOL": 15.0741, "BNB": 2.5394 };
-                        const simBalance = simBalances[card.symbol] || 0;
-                        const simUsdValue = liveUsd !== undefined ? liveUsd * simBalance : card.mockPrice * simBalance;
+                        const simBalance = isDisconnected ? 0 : (simBalances[card.symbol] || 0);
+                        const unitPrice = liveUsd !== undefined ? liveUsd : card.mockPrice;
+                        const displayBalance = isDisconnected ? formatUSD(unitPrice) : simBalance.toFixed(4);
+                        const simUsdValue = isDisconnected
+                            ? unitPrice // Show price of 1 unit
+                            : (liveUsd !== undefined ? liveUsd * simBalance : card.mockPrice * simBalance);
 
                         return (
                             <VaultCard
                                 key={card.id} id={card.id} name={card.name} symbol={card.symbol} icon={card.icon}
-                                balance={`${simBalance.toFixed(4)}`} 
-                                valueLabel={formatUSD(simUsdValue)} 
+                                balance={formatUSD(simUsdValue)} 
+                                valueLabel={isDisconnected ? "" : `${simBalance.toFixed(4)} ${card.symbol}`} 
                                 colSpan={card.colSpan}
                                 trend={liveChange !== undefined ? (liveChange >= 0 ? "up" : "down") : card.trend}
                                 sparkline={card.sparkline} isLarge={card.colSpan.includes("col-span-2")}
