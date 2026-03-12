@@ -161,6 +161,8 @@ export default function HeroTicker() {
             finalString = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(rawValue);
         }
 
+        // Force a full scramble from digit 1 by resetting displayed text
+        balanceRef.current.innerText = "—";
         runScramble(balanceRef.current, finalString, tickerSymbol);
     }, [balance, animate, compactNumbers, prices, account]);
 
