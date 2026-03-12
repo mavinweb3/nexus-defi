@@ -21,11 +21,7 @@ function GlassCard({ children, className = "", delay = 0 }: { children: React.Re
     }, []);
 
     return (
-        <div ref={cardRef} className={`relative overflow-hidden rounded-2xl backdrop-blur-[12px] bg-black/40 border border-white/10 p-6 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] opacity-0 ${className}`}>
-            <svg className="absolute inset-0 w-full h-full opacity-10 pointer-events-none mix-blend-overlay z-0">
-                <filter id="noise-sec"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch" /></filter>
-                <rect width="100%" height="100%" filter="url(#noise-sec)" fill="white" />
-            </svg>
+        <div ref={cardRef} className={`relative overflow-hidden rounded-2xl backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_8px_32px_rgba(0,0,0,0.8)] opacity-0 ${className}`}>
             <div className="relative z-10">{children}</div>
         </div>
     );
@@ -123,7 +119,7 @@ export default function SecurityPanel() {
                             </span>
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-3 max-h-64 overflow-y-auto">
+                        <div className="flex flex-col gap-3 max-h-64 overflow-y-auto scrollbar-dark">
                             {approvals.map((approval) => {
                                 const id = `${approval.tokenAddress}-${approval.spenderAddress}`;
                                 return (
@@ -173,7 +169,7 @@ export default function SecurityPanel() {
                             <span className="text-white/20 text-sm font-geist-sans">No transactions found</span>
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                        <div className="flex flex-col gap-2 max-h-64 overflow-y-auto scrollbar-dark">
                             {transactions.slice(0, 10).map((tx) => {
                                 const isSent = tx.from.toLowerCase() === account.address.toLowerCase();
                                 const isError = tx.isError === "1";

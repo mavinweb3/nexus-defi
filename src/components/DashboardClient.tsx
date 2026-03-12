@@ -21,10 +21,16 @@ export default function DashboardClient() {
     };
 
     return (
-        <div className="flex h-screen bg-[#050505] text-white antialiased overflow-hidden">
+        <div className="flex h-screen bg-[#0A0A0A] text-white antialiased overflow-hidden relative">
+            {/* Precision Grid Background with Fade Mask */}
+            <div className="absolute inset-0 bg-grid-white mask-radial-faded pointer-events-none z-0" style={{ backgroundSize: '40px 40px' }} />
+
+            {/* Monochromatic Spotlight (Apple Aesthetic) - Static, soft focus for depth */}
+            <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[80vw] max-w-[1200px] h-[60vh] rounded-full bg-slate-200/5 blur-[150px] pointer-events-none z-0" />
+
             {/* Desktop Sidebar */}
-            <aside className="w-64 border-r border-white/10 hidden md:flex flex-col flex-shrink-0 z-20 backdrop-blur-[12px] bg-black/40">
-                <div className="p-8 border-b border-white/10">
+            <aside className="w-64 border-r border-white/[0.05] hidden md:flex flex-col flex-shrink-0 z-20 backdrop-blur-3xl bg-black/20">
+                <div className="p-8 border-b border-white/[0.05]">
                     <h1 className="text-xl font-geist-sans tracking-tighter text-white font-bold">
                         MAVIN <span className="opacity-40 font-light">LABS</span>
                     </h1>
@@ -53,12 +59,12 @@ export default function DashboardClient() {
             {/* Mobile Sidebar Overlay */}
             {mobileMenuOpen && (
                 <div className="fixed inset-0 z-50 md:hidden" onClick={() => setMobileMenuOpen(false)}>
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
                     <aside
-                        className="absolute left-0 top-0 bottom-0 w-64 backdrop-blur-[12px] bg-[#0a0a0a]/95 border-r border-white/10 flex flex-col"
+                        className="absolute left-0 top-0 bottom-0 w-64 backdrop-blur-3xl bg-[#0a0a0a]/80 border-r border-white/[0.05] flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                        <div className="p-6 border-b border-white/[0.05] flex items-center justify-between">
                             <h1 className="text-xl font-geist-sans tracking-tighter text-white font-bold">
                                 MAVIN <span className="opacity-40 font-light">LABS</span>
                             </h1>
@@ -80,7 +86,7 @@ export default function DashboardClient() {
                             ))}
                         </nav>
 
-                        <div className="p-6 border-t border-white/10">
+                        <div className="p-6 border-t border-white/[0.05]">
                             <ClientConnectButton />
                         </div>
                     </aside>
@@ -90,7 +96,7 @@ export default function DashboardClient() {
             {/* Main Content Area */}
             <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
                 {/* Mobile Header */}
-                <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-4 bg-[#050505]/90 backdrop-blur-md border-b border-white/5">
+                <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-4 bg-[#020202]/80 backdrop-blur-2xl border-b border-white/[0.05]">
                     <button
                         onClick={() => setMobileMenuOpen(true)}
                         className="text-white/60 hover:text-white transition-colors cursor-pointer text-lg"

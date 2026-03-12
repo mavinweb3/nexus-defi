@@ -174,8 +174,10 @@ function VaultCard({
     const cardRef = useRef<HTMLDivElement>(null);
     const borderGlowRef = useRef<HTMLDivElement>(null);
     const balanceRef = useRef<HTMLSpanElement>(null);
+    const valueLabelRef = useRef<HTMLSpanElement>(null);
     const hoverTl = useRef<gsap.core.Timeline>(null);
     const prevBalanceRef = useRef<string | null>(null);
+    const prevValueRef = useRef<string | null>(null);
 
     // Compute dynamic sparkline from websocket history if available
     let currentSparkline = sparkline;
@@ -235,21 +237,32 @@ function VaultCard({
         el.addEventListener("mouseenter", handleMouseEnter);
         el.addEventListener("mouseleave", handleMouseLeave);
 
-        if (preferences?.animate && balanceRef.current && !isLoading && balance !== "—") {
-            const isUsd = balance.startsWith("$");
-            const finalVal = isUsd ? balance.substring(1) : balance;
+        if (preferences?.animate) {
+            // Animate Token Balance Scramble
+            if (balanceRef.current && !isLoading && balance !== "—") {
+                const currentNum = parseFloat(balance.replace(/[^0-9.-]+/g, ""));
+                const prevNum = prevBalanceRef.current ? parseFloat(prevBalanceRef.current.replace(/[^0-9.-]+/g, "")) : null;
+                
+                if (prevBalanceRef.current === null || prevNum === null || isNaN(currentNum)) {
+                    runScramble(balanceRef.current, balance, "");
+                } else if (currentNum !== prevNum) {
+                    runScramble(balanceRef.current, balance, ""); // Balance updates just scramble
+                }
+            }
+            
+            // Animate USD Value Flash (Live Market Data Ticks)
+            if (valueLabelRef.current && valueLabel && valueLabel !== "Live Balance" && !valueLabel.includes("Querying")) {
+                const currentValNum = parseFloat(valueLabel.replace(/[^0-9.-]+/g, ""));
+                const prevValNum = prevValueRef.current ? parseFloat(prevValueRef.current.replace(/[^0-9.-]+/g, "")) : null;
 
-            const currentNum = parseFloat(balance.replace(/[^0-9.-]+/g, ""));
-            const prevNum = prevBalanceRef.current ? parseFloat(prevBalanceRef.current.replace(/[^0-9.-]+/g, "")) : null;
-
-            if (prevBalanceRef.current === null || prevNum === null || isNaN(currentNum)) {
-                runScramble(balanceRef.current, finalVal, isUsd ? "$" : "");
-            } else if (currentNum !== prevNum) {
-                runFlash(balanceRef.current, currentNum > prevNum);
+                if (prevValueRef.current !== null && prevValNum !== null && !isNaN(currentValNum) && currentValNum !== prevValNum) {
+                    runFlash(valueLabelRef.current, currentValNum > prevValNum);
+                }
             }
         }
 
         prevBalanceRef.current = balance;
+        prevValueRef.current = valueLabel;
 
         return () => {
             el.removeEventListener("mousemove", handleMouseMove);
@@ -259,12 +272,9 @@ function VaultCard({
     }, [balance, isLoading, preferences?.animate]);
 
     return (
-        <div ref={cardRef} className={`relative overflow-hidden rounded-2xl backdrop-blur-[12px] bg-black/40 border border-white/10 p-6 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] flex flex-col justify-between min-h-[180px] group ${colSpan}`} style={{ willChange: "transform" }}>
-            <div ref={borderGlowRef} className="absolute w-[400px] h-[400px] bg-white/15 rounded-full blur-[60px] pointer-events-none opacity-0 mix-blend-screen -translate-x-1/2 -translate-y-1/2 z-0" />
-            <svg className="absolute inset-0 w-full h-full opacity-10 pointer-events-none mix-blend-overlay z-0">
-                <filter id={`noise-${id}`}><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch" /></filter>
-                <rect width="100%" height="100%" filter={`url(#noise-${id})`} fill="white" />
-            </svg>
+        <div ref={cardRef} className={`relative overflow-hidden rounded-2xl backdrop-blur-3xl bg-white/[0.02] border border-white/[0.08] p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_8px_32px_rgba(0,0,0,0.8)] flex flex-col justify-between min-h-[180px] group ${colSpan}`} style={{ willChange: "transform" }}>
+            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/[0.08] to-transparent pointer-events-none mix-blend-overlay z-0" />
+            <div ref={borderGlowRef} className="absolute w-[400px] h-[400px] bg-white/10 rounded-full blur-[60px] pointer-events-none opacity-0 mix-blend-screen -translate-x-1/2 -translate-y-1/2 z-0" />
 
             <div className="relative z-10 flex justify-between items-start w-full">
                 <div className="flex flex-col gap-1">
@@ -292,7 +302,7 @@ function VaultCard({
 
             <div className="relative z-10 flex flex-col items-start w-full mt-8">
                 <span ref={balanceRef} className={`font-bold text-white font-geist-sans tracking-[-0.05em] ${isLoading ? "animate-pulse text-white/40" : ""} ${isLarge ? "text-4xl md:text-5xl" : "text-3xl"}`}>{balance}</span>
-                <span className="text-white/40 text-sm font-geist-sans mt-1">{valueLabel}</span>
+                <span ref={valueLabelRef} className="text-white/40 text-sm font-geist-sans mt-1 transition-colors duration-200">{valueLabel}</span>
             </div>
         </div>
     );
@@ -392,6 +402,17 @@ export default function AssetVault() {
         setLoadedTokens(new Set());
     }, [chainId, account?.address]);
 
+    const sectionRef = useRef<HTMLElement>(null);
+
+    // Entrance animation (matches Security/Settings panels)
+    useEffect(() => {
+        if (!sectionRef.current || !isMounted) return;
+        gsap.fromTo(sectionRef.current,
+            { y: 20, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }
+        );
+    }, [isMounted]);
+
     if (!isMounted) return null;
 
     const isAllLoaded = account ? allTokens.every((t) => loadedTokens.has(t.id)) : true;
@@ -399,7 +420,7 @@ export default function AssetVault() {
     const showPlaceholders = !account || (!isAllLoaded && heldTokens.length === 0) || (isAllLoaded && heldTokens.length === 0);
 
     return (
-        <section className="w-full z-10 relative">
+        <section ref={sectionRef} className="w-full z-10 relative">
             {account && allTokens.map(t => (
                 <BalanceFetcher
                     key={`fetcher-${chainId}-${t.id}`}
@@ -435,19 +456,22 @@ export default function AssetVault() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 auto-rows-[minmax(160px,auto)] sm:auto-rows-[minmax(180px,auto)]">
                 {showPlaceholders ? (
                     PLACEHOLDER_CARDS.map((card) => {
-                        // Use real-time data if available, otherwise fallback to the mock price layout immediately
                         const liveUsd = prices[card.symbol]?.usd;
                         const liveChange = prices[card.symbol]?.change24h;
 
-                        // Use the formatUSD hook from usePrices for consistency
-                        const formattedPrice = liveUsd !== undefined
-                            ? formatUSD(liveUsd)
-                            : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(card.mockPrice);
+                        // Simulated holdings for the empty wallet state
+                        // Token balances are STATIC (wallet holdings don't change in simulation)
+                        // Only the USD dollar values tick with live market data
+                        const simBalances: Record<string, number> = { "BTC": 1.2513, "ETH": 3.5182, "SOL": 15.0741, "BNB": 2.5394 };
+                        const simBalance = simBalances[card.symbol] || 0;
+                        const simUsdValue = liveUsd !== undefined ? liveUsd * simBalance : card.mockPrice * simBalance;
 
                         return (
                             <VaultCard
                                 key={card.id} id={card.id} name={card.name} symbol={card.symbol} icon={card.icon}
-                                balance={formattedPrice} valueLabel="Market Insight" colSpan={card.colSpan}
+                                balance={`${simBalance.toFixed(4)}`} 
+                                valueLabel={formatUSD(simUsdValue)} 
+                                colSpan={card.colSpan}
                                 trend={liveChange !== undefined ? (liveChange >= 0 ? "up" : "down") : card.trend}
                                 sparkline={card.sparkline} isLarge={card.colSpan.includes("col-span-2")}
                                 priceChange={liveChange !== undefined ? liveChange : card.priceChange}
